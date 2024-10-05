@@ -1,8 +1,10 @@
+print("Olá Paulo, nós somos Flávio Scanoni, Giovanna de Andrade, Isabel Galvão e Yasmin Araujo. Esperamos que goste do que fizemos.")
+
 def exibirMensagem (nome, idade, filme, total_pagantes):
     print(f"Olá {nome}, se divirta assistindo {filme}. Alem disso, será/serão {total_pagantes} pessoa(s) que irá/irão pagar o ingresso.")
 
 nome = input("Qual seu nome: \n\n")
-idade = input("\nQual a sua idade: \n\n")
+idade = int(input("\nQual a sua idade: \n\n"))
 filme = input("\nQual filme que você deseja assistir: \n\n")
 total_pagantes = int(input("\nDigite a quantidade total de ingressos: \n\n"))
 valor_total = float(input("\nQual o valor total que você pagou? \n\n"))
@@ -14,4 +16,4 @@ y = total_pagantes - x
 
 exibirMensagem(nome, idade, filme, total_pagantes)
 print(f"Pagantes Inteira: {x}")
-print(f"Pagantes meia: {y}")
+print(f"Pagantes meia: {y}")
