@@ -1,0 +1,526 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <title>Experimento Virtual — Polarização (Bootstrap + Anime.js)</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+
+  <!-- Bootstrap CSS (CDN) -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- Anime.js (CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/animejs@3.2.1/lib/anime.min.js"></script>
+
+  <style>
+    :root{
+      --bg:#0f1724;
+      --card:#0b1220;
+      --muted:#9aa6b2;
+    }
+    body {
+      background: linear-gradient(180deg, #071028 0%, var(--bg) 100%);
+      color: #e6eef6;
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      padding: 20px;
+    }
+
+    .lab {
+      display:flex;
+      gap:20px;
+      align-items:flex-start;
+      justify-content:center;
+      flex-wrap:wrap;
+    }
+
+    .experiment {
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border: 1px solid rgba(255,255,255,0.04);
+      box-shadow: 0 6px 18px rgba(0,0,0,0.6);
+      border-radius:12px;
+      padding:14px;
+      width:820px;
+    }
+
+    .controls { width:300px; }
+
+    /* Canvas container sizing */
+    #stage {
+      background: linear-gradient(180deg, rgba(255,255,255,0.015), rgba(255,255,255,0.005));
+      border-radius:8px;
+      border:1px solid rgba(255,255,255,0.03);
+      width:100%;
+      height:360px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      position:relative;
+      overflow:hidden;
+    }
+
+    /* lab labels */
+    .axis-line {
+      stroke: rgba(255,255,255,0.6);
+      stroke-width:2;
+      stroke-linecap:round;
+    }
+
+    .muted { color: var(--muted); font-size:0.95rem; }
+
+    .small { font-size:0.85rem; color:#b7c6d6; }
+
+    /* slider style */
+    input[type=range] {
+      accent-color: #5eead4;
+      width:100%;
+    }
+
+    /* a little "instrument" look */
+    .panel-title { font-weight:600; font-size:1.02rem }
+    .card-compact { background:transparent; border:none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="d-flex justify-content-between align-items-start mb-3">
+      <div>
+        <h2 class="mb-0">Painel Interativo — Polarização da Luz</h2>
+        <div class="muted">Simulação visual com Bootstrap + Anime.js — arraste o controle ou clique e gire o disco</div>
+      </div>
+      <div class="text-end small">
+        <div>Lei de Malus: <em>I = I₀ cos²(θ)</em></div>
+      </div>
+    </div>
+
+    <div class="lab">
+      <div class="experiment">
+        <div id="stage" aria-hidden="false">
+          <canvas id="canvas" width="760" height="340"></canvas>
+          <!-- overlay labels -->
+          <div style="position:absolute; left:36px; top:18px;" class="small">Fonte</div>
+          <div style="position:absolute; left:180px; top:8px;" class="small">Filtro A (fixo)</div>
+          <div style="position:absolute; left:430px; top:8px;" class="small">Filtro B (rotativo)</div>
+          <div style="position:absolute; right:20px; bottom:16px;" class="small">Tela / detector</div>
+        </div>
+
+        <div class="d-flex gap-3 mt-3">
+          <div class="controls">
+            <div class="mb-2 panel-title">Controle do ângulo</div>
+            <div class="mb-2">
+              <input id="angleRange" type="range" min="0" max="180" value="0" step="1" />
+              <div class="d-flex justify-content-between">
+                <small class="muted">0°</small>
+                <small class="muted">90°</small>
+                <small class="muted">180°</small>
+              </div>
+            </div>
+
+            <div class="mb-2">
+              <label class="d-block small">Ângulo atual: <strong id="angleValue">0°</strong></label>
+              <label class="d-block small">Intensidade relativa: <strong id="intensityValue">100%</strong></label>
+            </div>
+
+            <div class="d-flex gap-2">
+              <button id="autoBtn" class="btn btn-sm btn-outline-light">Auto girar</button>
+              <button id="stopBtn" class="btn btn-sm btn-outline-danger">Parar</button>
+              <button id="resetBtn" class="btn btn-sm btn-outline-danger">Reset 0°</button>
+            </div>
+          </div>
+
+          <div class="flex-grow-1">
+            <div class="panel-title mb-2">Gráfico (I / I₀ vs θ)</div>
+            <canvas id="graph" width="380" height="200" style="background:transparent; display:block;"></canvas>
+            <div class="small mt-2 muted">O ponto em destaque mostra o valor atual de intensidade (Lei de Malus).</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="max-width:320px;">
+        <div class="card card-compact p-3">
+          <div class="card-body p-0">
+            <h5 class="card-title panel-title mb-2">Como usar</h5>
+            <p class="small">Arraste o slider para girar o filtro B. A intensidade exibida e o gráfico atualizam em tempo real seguindo <strong>I = cos²(θ)</strong>. Clique em <em>Auto girar</em> para ver animação contínua.</p>
+
+            <h6 class="mt-3 small">Dicas para quem for ao painel físico</h6>
+            <ul class="small">
+              <li>Substitua os círculos por polarizadores reais e compare o resultado.</li>
+              <li>Mostre objetos comuns (telas LCD, plásticos) entre os filtros para observar efeitos.</li>
+              <li>Use uma lanterna forte e um detector (fotocélula) para medir I₀ e I experimentalmente.</li>
+            </ul>
+
+            <p class="small mt-3"><strong>Observação:</strong> ângulo θ é a diferença entre os eixos de transmissão dos dois polarizadores.</p>
+          </div>
+        </div>
+      </div>
+    </div> <!-- lab -->
+  </div>
+
+<script>
+/*
+  Simulação gráfica:
+  - Canvas principal desenha: fonte (círculo), feixe (gradient), filtro A (fixo), filtro B (rotativo), tela
+  - Filtros representados como discos com uma "linha" que mostra a direção da transmissão.
+  - Intensidade depois do segundo filtro: I = I0 * cos^2(theta)
+  - Anime.js é usado para animações suaves ao mudar o slider ou clicar em Auto.
+*/
+
+// --- Setup
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const graph = document.getElementById('graph');
+const gctx = graph.getContext('2d');
+
+const W = canvas.width;
+const H = canvas.height;
+
+// positions (relative)
+const srcX = 70, srcY = H/2;
+const filterAX = 200, filterAY = H/2;
+const filterBX = 420, filterBY = H/2;
+const screenX = 630, screenY = H/2;
+
+let angle = 0; // degrees (difference between axes)
+const I0 = 1.0;
+
+// UI elements
+const angleRange = document.getElementById('angleRange');
+const angleValue = document.getElementById('angleValue');
+const intensityValue = document.getElementById('intensityValue');
+const autoBtn = document.getElementById('autoBtn');
+const stopBtn = document.getElementById('stopBtn');
+const resetBtn = document.getElementById('resetBtn');
+
+// helper: convert degrees to radians
+const deg = d => d * Math.PI/180;
+
+// --- Drawing helpers
+
+function drawScene(aDeg) {
+  ctx.clearRect(0,0,W,H);
+
+  // background subtle grid (lab texture)
+  ctx.save();
+  ctx.globalAlpha = 0.06;
+  ctx.fillStyle = '#9fb3cfe0';
+  for (let x=0; x<W; x+=40) {
+    ctx.fillRect(x, 0, 1, H);
+  }
+  for (let y=0; y<H; y+=40) {
+    ctx.fillRect(0, y, W, 1);
+  }
+  ctx.restore();
+
+  // Light source (RGB)
+  const rSrc = 32;
+  const gradSrc = ctx.createRadialGradient(srcX, srcY, 6, srcX, srcY, rSrc*3);
+  gradSrc.addColorStop(0, 'rgba(255,0,0,1)');       // vermelho
+  gradSrc.addColorStop(0.33, 'rgba(0,255,0,0.8)');  // verde
+  gradSrc.addColorStop(0.66, 'rgba(0,0,255,0.8)');  // azul
+  gradSrc.addColorStop(1, 'rgba(0,0,255,0)');
+
+  ctx.beginPath();
+  ctx.fillStyle = gradSrc;
+  ctx.arc(srcX, srcY, rSrc*1.0, 0, Math.PI*2);
+  ctx.fill();
+
+  // Beam before filters - wide beam rectangle with RGB gradient
+  const beamTop = srcY - 70;
+  const beamHeight = 140;
+  const beamGradient = ctx.createLinearGradient(srcX+20,0, screenX-40,0);
+  beamGradient.addColorStop(0, 'rgba(255,0,0,0.9)');
+  beamGradient.addColorStop(0.33, 'rgba(0,255,0,0.9)');
+  beamGradient.addColorStop(0.66, 'rgba(0,0,255,0.9)');
+  beamGradient.addColorStop(1, 'rgba(0,0,255,0.06)');
+  ctx.fillStyle = beamGradient;
+  ctx.fillRect(srcX+18, beamTop, screenX - (srcX+30), beamHeight);
+
+  // draw filter A (fixed)
+  drawFilter(filterAX, filterAY, 70, 0, 'A');
+
+  // draw filter B (rotatable)
+  drawFilter(filterBX, filterBY, 70, aDeg, 'B');
+
+  // compute intensity using Malus (angle between axes)
+  // assuming filter A axis = 0°, filter B axis = aDeg
+  const I = I0 * Math.pow(Math.cos(deg(aDeg)), 2);
+
+  // beam after filters: draw a narrower band near screen, alpha = I
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.fillStyle = `rgba(255,255,255,${0.95 * I})`;
+  ctx.fillRect(screenX - 10, beamTop + 20, 120, beamHeight - 40);
+  ctx.restore();
+
+  // draw screen (detector)
+  ctx.save();
+  ctx.fillStyle = 'rgba(30,40,55,0.9)';
+  ctx.fillRect(screenX + 100 - 10, beamTop - 12, 8, beamHeight + 24);
+  // detector box
+  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+  ctx.strokeRect(screenX + 20, beamTop - 6, 80, beamHeight + 12);
+  ctx.restore();
+
+  // overlay: intensity meter on screen
+  ctx.save();
+  ctx.fillStyle = 'rgba(255,255,255,0.06)';
+  ctx.fillRect(screenX + 30, beamTop + beamHeight - 40, 60, 18);
+  ctx.fillStyle = 'rgba(50,200,170,' + (0.2 + 0.8*I) + ')';
+  ctx.fillRect(screenX + 32, beamTop + beamHeight - 38, 56 * I, 14);
+  ctx.restore();
+
+  // axis lines on filters (show polarization direction)
+  // these are drawn inside drawFilter
+
+  // label intensities
+  angleValue.innerText = Math.round(aDeg) + '°';
+  intensityValue.innerText = Math.round(I*100) + '%';
+
+  // update graph as well
+  updateGraph(aDeg, I);
+}
+
+function drawFilter(cx, cy, radius, axisDeg, name) {
+  // outer disk (glass)
+  ctx.save();
+  const r = radius;
+  // disk with subtle tint and polarizing texture (stripes)
+  ctx.beginPath();
+  ctx.fillStyle = 'rgba(40,50,70,0.45)';
+  ctx.arc(cx, cy, r, 0, Math.PI*2);
+  ctx.fill();
+
+  // subtle rim
+  ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // draw transmission axis as line across disk
+  ctx.translate(cx, cy);
+  ctx.rotate(deg(axisDeg));
+  ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(-r+6, 0);
+  ctx.lineTo(r-6, 0);
+  ctx.stroke();
+
+  // draw small ticks perpendicular to axis to imitate polarizer lines
+  ctx.strokeStyle = 'rgba(180,200,220,0.06)';
+  ctx.lineWidth = 1;
+  for (let i = -r+8; i <= r-8; i += 6) {
+    ctx.beginPath();
+    ctx.moveTo(i, -8);
+    ctx.lineTo(i, 8);
+    ctx.stroke();
+  }
+
+  // label near disk
+  ctx.rotate(-deg(axisDeg));
+  ctx.fillStyle = 'rgba(255,255,255,0.9)';
+  ctx.font = '12px Inter, Arial';
+  ctx.fillText(name, -r+8, -r+14);
+  ctx.restore();
+
+  // allow clicking / dragging: we'll handle on canvas events
+}
+
+// --- Graph (I vs theta)
+function drawStaticCurve() {
+  const w = graph.width;
+  const h = graph.height;
+  gctx.clearRect(0,0,w,h);
+
+  // background
+  gctx.fillStyle = 'rgba(255,255,255,0.02)';
+  gctx.fillRect(0,0,w,h);
+
+  // axes
+  gctx.strokeStyle = 'rgba(255,255,255,0.12)';
+  gctx.lineWidth = 1;
+  gctx.beginPath();
+  gctx.moveTo(40, h-30);
+  gctx.lineTo(w-10, h-30); // x axis
+  gctx.moveTo(40, h-30);
+  gctx.lineTo(40, 10); // y axis
+  gctx.stroke();
+
+  // labels
+  gctx.fillStyle = 'rgba(255,255,255,0.6)';
+  gctx.font = '11px Inter, Arial';
+  gctx.fillText('0°', 40, h-10);
+  gctx.fillText('90°', (w-10)/2 - 8, h-10);
+  gctx.fillText('180°', w-34, h-10);
+  gctx.fillText('I / I₀', 6, 18);
+
+  // draw cos^2 curve
+  gctx.strokeStyle = 'rgba(94,234,212,0.95)';
+  gctx.lineWidth = 2;
+  gctx.beginPath();
+  for (let x = 0; x <= 180; x++) {
+    const nx = 40 + (x/180) * (w-55);
+    const yy = Math.pow(Math.cos(deg(x)), 2);
+    const ny = (h-30) - yy * (h - 60);
+    if (x===0) gctx.moveTo(nx, ny); else gctx.lineTo(nx, ny);
+  }
+  gctx.stroke();
+}
+
+function updateGraph(thetaDeg, I) {
+  // redraw static curve then overlay a marker
+  drawStaticCurve();
+
+  const w = graph.width;
+  const h = graph.height;
+  const nx = 40 + (thetaDeg/180) * (w-55);
+  const ny = (h-30) - I * (h - 60);
+
+  // marker
+  gctx.beginPath();
+  gctx.fillStyle = 'rgba(255,255,255,0.95)';
+  gctx.arc(nx, ny, 4, 0, Math.PI*2);
+  gctx.fill();
+
+  // vertical guide
+  gctx.strokeStyle = 'rgba(255,255,255,0.06)';
+  gctx.beginPath();
+  gctx.moveTo(nx, h-30);
+  gctx.lineTo(nx, ny);
+  gctx.stroke();
+
+  // values
+  gctx.fillStyle = 'rgba(255,255,255,0.8)';
+  gctx.font = '11px Inter, Arial';
+  gctx.fillText(thetaDeg.toFixed(0) + '°', nx+6, h-44);
+  gctx.fillText('I=' + (I*100).toFixed(0) + '%', nx+6, h-32);
+}
+
+// --- Interaction: slider updates angle & animates rotation
+let currentAngle = 0;
+let anim = null;
+let autoAnim = null;
+
+function setAngle(target, duration = 300) {
+  if (anim) anim.pause();
+  anim = anime({
+    targets: {a: currentAngle},
+    a: target,
+    duration: duration,
+    easing: 'easeOutQuad',
+    update: function(animObj) {
+      currentAngle = animObj.animations[0].currentValue;
+      drawScene(currentAngle);
+      // sync slider UI without triggering event
+      angleRange.value = Math.round(currentAngle);
+    }
+  });
+}
+
+angleRange.addEventListener('input', (e) => {
+  const v = Number(e.target.value);
+  setAngle(v, 120);
+});
+
+// Auto rotate toggling
+let autoPlay = false;
+autoBtn.addEventListener('click', () => {
+  if (autoPlay) return; // ignore if already running
+
+  autoPlay = true;
+  autoBtn.classList.add('btn-success');
+  autoBtn.innerText = 'Rodando...';
+  stopBtn.disabled = false;
+
+  autoAnim = anime({
+    targets: { ang: currentAngle },
+    ang: [0, 180],
+    direction: 'alternate',
+    duration: 6000,
+    easing: 'linear',
+    loop: true,
+    update: function(a){
+      currentAngle = a.animations[0].currentValue;
+      angleRange.value = Math.round(currentAngle);
+      drawScene(currentAngle);
+    }
+  });
+});
+
+stopBtn.addEventListener('click', () => {
+  if (!autoPlay) return;
+
+  autoPlay = false;
+  autoBtn.classList.remove('btn-success');
+  autoBtn.innerText = 'Auto girar';
+  stopBtn.disabled = true;
+
+  if (autoAnim) {
+    autoAnim.pause();
+    autoAnim = null;
+  }
+});
+
+// Inicialmente, o botão parar está desabilitado
+stopBtn.disabled = true;
+
+resetBtn.addEventListener('click', () => {
+  // parar animações automáticas se houver
+  if (autoPlay) {
+    autoPlay = false;
+    autoBtn.classList.remove('btn-success');
+    autoBtn.innerText = 'Auto girar';
+    stopBtn.disabled = true;
+    if (autoAnim) {
+      autoAnim.pause();
+      autoAnim = null;
+    }
+  }
+  angleRange.value = 0;
+  setAngle(0, 350);
+});
+
+// Canvas click & drag for rotating filter B
+let dragging = false;
+canvas.addEventListener('mousedown', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  // If user clicked near filter B region, start dragging
+  if (Math.hypot(x - filterBX, y - filterBY) < 90) {
+    dragging = true;
+
+    // Stop auto rotation if dragging
+    if (autoPlay) {
+      autoPlay = false;
+      autoBtn.classList.remove('btn-success');
+      autoBtn.innerText = 'Auto girar';
+      stopBtn.disabled = true;
+      if (autoAnim) {
+        autoAnim.pause();
+        autoAnim = null;
+      }
+    }
+  }
+});
+window.addEventListener('mouseup', () => dragging = false);
+window.addEventListener('mousemove', (e) => {
+  if (!dragging) return;
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  const dx = x - filterBX, dy = y - filterBY;
+  const ang = Math.atan2(dy, dx) * 180 / Math.PI;
+  // we want angle relative to horizontal axis; normalize to 0..180
+  let normalized = ang;
+  if (normalized < 0) normalized += 360;
+  if (normalized > 180) normalized -= 180;
+  angleRange.value = Math.round(normalized);
+  setAngle(normalized, 30);
+});
+
+// initial draw
+drawScene(angle);
+drawStaticCurve();
+
+</script>
+
+</body>
+</html>
